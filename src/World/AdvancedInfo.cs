@@ -20,8 +20,8 @@ namespace VanillaUpgrades.World
             { "Apoapsis", new DisplayRefs() },
             { "Periapsis", new DisplayRefs() },
             { "Eccentricity", new DisplayRefs() },
-            { "AngleTitle", new DisplayRefs() }, // for special "Angle" naming
-            { "Angle", new DisplayRefs() }
+            { "Angle", new DisplayRefs() },
+            { "Local Angle", new DisplayRefs() }
         };
 
         // Inline UI objects to hide/show
@@ -113,7 +113,7 @@ namespace VanillaUpgrades.World
             horizontalContainer?.gameObject.SetActive(isHorizontal);
 
             // Adjust the window size for each layout
-            advancedInfoWindow.Size = isHorizontal ? new Vector2(350, 230) : new Vector2(220, 350);
+            advancedInfoWindow.Size = isHorizontal ? new Vector2(350, 260) : new Vector2(220, 390);
 
             advancedInfoWindow.ClampWindow();
         }
@@ -134,14 +134,14 @@ namespace VanillaUpgrades.World
                 out var apo,
                 out var peri,
                 out var ecc,
-                out var angleTitle,
-                out var angle
+                out var angle,
+                out var localAngle
             );
 
             SetField("Apoapsis", apo);
             SetField("Periapsis", peri);
             SetField("Eccentricity", ecc);
-            SetField("AngleTitle", angleTitle);
+            SetField("Local Angle", localAngle);
             SetField("Angle", angle);
         }
 
@@ -152,36 +152,6 @@ namespace VanillaUpgrades.World
 
             bool separate = Config.settings.showAdvancedInSeparateWindow;
             bool isHorizontal = Config.settings.horizontalMode;
-
-            // If this is the dynamic "AngleTitle" field, 
-            // then in the separate window we append ":"
-            // In vanilla we omit the colon
-            if (fieldKey == "AngleTitle")
-            {
-                // e.g. "Angle" -> "Angle:" in the window
-                // or "Local Angle" -> "Local Angle:"
-                var finalTitle = separate ? value + ":" : value;
-
-                if (separate)
-                {
-                    switch (isHorizontal)
-                    {
-                        case true when refs.horizontal != null:
-                            refs.horizontal.Text = finalTitle;
-                            break;
-                        case false when refs.vertical != null:
-                            refs.vertical.Text = finalTitle;
-                            break;
-                    }
-                }
-                else
-                {
-                    if (refs.vanillaTitle != null)
-                        refs.vanillaTitle.Text = finalTitle;
-                }
-
-                return; // done
-            }
 
             if (separate)
             {
@@ -199,9 +169,7 @@ namespace VanillaUpgrades.World
             else
             {
                 // Show in vanilla
-                if (fieldKey == "AngleTitle" && refs.vanillaTitle != null)
-                    refs.vanillaTitle.Text = value;
-                else if (refs.vanilla != null) refs.vanilla.Text = value;
+                if (refs.vanilla != null) refs.vanilla.Text = value;
             }
         }
 
@@ -209,14 +177,14 @@ namespace VanillaUpgrades.World
             out string apoapsis,
             out string periapsis,
             out string eccentricity,
-            out string angleTitle,
-            out string angle
+            out string angle,
+            out string localAngle
         )
         {
             apoapsis = "0.0m";
             periapsis = "0.0m";
             eccentricity = "0.000";
-            angleTitle = "Angle";
+            localAngle = "0.0°";
             angle = "0.0°";
 
             Rocket rocket = WorldManager.currentRocket;
@@ -244,19 +212,10 @@ namespace VanillaUpgrades.World
             var facing = new Vector2(Mathf.Cos(globalAngle * Mathf.Deg2Rad), Mathf.Sin(globalAngle * Mathf.Deg2Rad));
             var trueAngle = Vector2.SignedAngle(facing, orbitAngleVector);
 
-            var planetSurface = loc.planet.TimewarpRadius_Ascend - loc.planet.Radius;
-            if (loc.GetTerrainHeight(true) < planetSurface)
-            {
-                angle = trueAngle.ToString("F1", CultureInfo.InvariantCulture) + "°";
-                angleTitle = "Local Angle";
-            }
-            else
-            {
-                angleTitle = "Angle";
-                angle = globalAngle > 180
-                    ? (360 - globalAngle).ToString("F1", CultureInfo.InvariantCulture) + "°"
-                    : (-globalAngle).ToString("F1", CultureInfo.InvariantCulture) + "°";
-            }
+            localAngle = trueAngle.ToString("F1", CultureInfo.InvariantCulture) + "°";
+            angle = globalAngle > 180
+                ? (360 - globalAngle).ToString("F1", CultureInfo.InvariantCulture) + "°"
+                : (-globalAngle).ToString("F1", CultureInfo.InvariantCulture) + "°";
         }
 
         // -- Holds references for each field's UI in vanilla inline, horizontal, and vertical
@@ -264,7 +223,6 @@ namespace VanillaUpgrades.World
         {
             public Label horizontal; // readout label in horizontal layout
             public TextAdapter vanilla; // e.g. right label in vanilla UI
-            public TextAdapter vanillaTitle; // special case if needed for "Angle"
             public Label vertical; // readout label in vertical layout
         }
     }
