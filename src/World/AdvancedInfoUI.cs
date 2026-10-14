@@ -100,13 +100,14 @@ namespace VanillaUpgrades.World
             Builder.CreateSpace(parent, 1, 10);
 
 
-            Label angleTitleLabel = UIExtensions.AlignedLabel(parent, 140, 30, "Angle:");
-            // Value label
+            UIExtensions.AlignedLabel(parent, 140, 30, "Angle:");
             Label angleValueLabel = UIExtensions.AlignedLabel(parent, 175, 30);
-
-            // Hook them up so the refactoring code can update each
-            DisplayMap["AngleTitle"].vertical = angleTitleLabel;
             DisplayMap["Angle"].vertical = angleValueLabel;
+            Builder.CreateSpace(parent, 1, 10);
+
+            UIExtensions.AlignedLabel(parent, 140, 30, "Local Angle:");
+            Label localAngleValueLabel = UIExtensions.AlignedLabel(parent, 175, 30);
+            DisplayMap["Local Angle"].vertical = localAngleValueLabel;
         }
 
         private static void BuildHorizontalUI(Container parent)
@@ -138,15 +139,15 @@ namespace VanillaUpgrades.World
             // 4) Angle row
             Container angleRow = Builder.CreateContainer(parent);
             angleRow.CreateLayoutGroup(Type.Horizontal, TextAnchor.UpperLeft, 5);
-
-            // Title label
-            Label angleTitleLabel = UIExtensions.AlignedLabel(angleRow, 150, 30, "Angle:");
-            // Value label
+            UIExtensions.AlignedLabel(angleRow, 150, 30, "Angle:");
             Label angleValueLabel = UIExtensions.AlignedLabel(angleRow, 175, 30);
-
-            // Hook them up so the refactoring code can update each
-            DisplayMap["AngleTitle"].horizontal = angleTitleLabel;
             DisplayMap["Angle"].horizontal = angleValueLabel;
+            
+            Container localAngleRow = Builder.CreateContainer(parent);
+            localAngleRow.CreateLayoutGroup(Type.Horizontal, TextAnchor.UpperLeft, 5);
+            UIExtensions.AlignedLabel(localAngleRow, 150, 30, "Local Angle:");
+            Label localAngleValueLabel = UIExtensions.AlignedLabel(localAngleRow, 175, 30);
+            DisplayMap["Local Angle"].horizontal = localAngleValueLabel;
         }
 
         // --------------------------------------------------------------------
@@ -160,7 +161,7 @@ namespace VanillaUpgrades.World
 
             GameObject holder = thrust.transform.parent.gameObject;
 
-            string[] fieldOrder = { "Apoapsis", "Periapsis", "Eccentricity", "Angle" };
+            string[] fieldOrder = { "Apoapsis", "Periapsis", "Eccentricity", "Angle", "Local Angle" };
             foreach (var key in fieldOrder)
             {
                 // Insert a line
@@ -188,17 +189,7 @@ namespace VanillaUpgrades.World
                 // Set the top label to the key
                 titleText.Text = key;
 
-                if (key == "Angle")
-                {
-                    if (DisplayMap["AngleTitle"] != null)
-                        DisplayMap["AngleTitle"].vanillaTitle = titleText; // for "Local Angle" etc.
-                    if (DisplayMap["Angle"] != null)
-                        DisplayMap["Angle"].vanilla = valueText;
-                }
-                else
-                {
-                    DisplayMap[key].vanilla = valueText;
-                }
+                DisplayMap[key].vanilla = valueText;
             }
         }
     }
