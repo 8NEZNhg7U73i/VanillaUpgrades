@@ -1,0 +1,176 @@
+diff --git a/src/World/AdvancedInfo.cs b/src/World/AdvancedInfo.cs
+--- a/src/World/AdvancedInfo.cs
++++ b/src/World/AdvancedInfo.cs
+@@ -18,6 +18,6 @@ namespace VanillaUpgrades.World
+             { "Apoapsis", new DisplayRefs() },
+             { "Periapsis", new DisplayRefs() },
+             { "Eccentricity", new DisplayRefs() },
+-            { "AngleTitle", new DisplayRefs() }, // for special "Angle" naming
+-            { "Angle", new DisplayRefs() }
++            { "Angle", new DisplayRefs() },
++            { "Local Angle", new DisplayRefs() }
+         };
+@@ -101,7 +101,7 @@ namespace VanillaUpgrades.World
+             horizontalContainer?.gameObject.SetActive(isHorizontal);
+ 
+             // Adjust the window size for each layout
+-            advancedInfoWindow.Size = isHorizontal ? new Vector2(350, 230) : new Vector2(220, 350);
++            advancedInfoWindow.Size = isHorizontal ? new Vector2(350, 260) : new Vector2(220, 390);
+ 
+             advancedInfoWindow.ClampWindow();
+         }
+@@ -120,12 +120,12 @@ namespace VanillaUpgrades.World
+                 out var apo,
+                 out var peri,
+                 out var ecc,
+-                out var angleTitle,
+-                out var angle
++                out var angle,
++                out var localAngle
+             );
+             SetField("Apoapsis", apo);
+             SetField("Periapsis", peri);
+             SetField("Eccentricity", ecc);
+-            SetField("AngleTitle", angleTitle);
+             SetField("Angle", angle);
++            SetField("Local Angle", localAngle);
+         }
+@@ -133,33 +133,6 @@ namespace VanillaUpgrades.World
+                 return;
+             bool separate = Config.settings.showAdvancedInSeparateWindow;
+             bool isHorizontal = Config.settings.horizontalMode;
+-            // If this is the dynamic "AngleTitle" field,
+-            // then in the separate window we append ":"
+-            // In vanilla we omit the colon
+-            if (fieldKey == "AngleTitle")
+-            {
+-                // e.g. "Angle" -> "Angle:" in the window
+-                // or "Local Angle" -> "Local Angle:"
+-                var finalTitle = separate ? value + ":" : value;
+-                if (separate)
+-                {
+-                    switch (isHorizontal)
+-                    {
+-                        case true when refs.horizontal != null:
+-                            refs.horizontal.Text = finalTitle;
+-                            break;
+-                        case false when refs.vertical != null:
+-                            refs.vertical.Text = finalTitle;
+-                            break;
+-                    }
+-                }
+-                else
+-                {
+-                    if (refs.vanillaTitle != null)
+-                        refs.vanillaTitle.Text = finalTitle;
+-                }
+-                return; // done
+-            }
+             if (separate)
+             {
+                 switch (isHorizontal)
+@@ -179,9 +154,7 @@ namespace VanillaUpgrades.World
+             else
+             {
+                 // Show in vanilla
+-                if (fieldKey == "AngleTitle" && refs.vanillaTitle != null)
+-                    refs.vanillaTitle.Text = value;
+-                else if (refs.vanilla != null) refs.vanilla.Text = value;
++                if (refs.vanilla != null) refs.vanilla.Text = value;
+             }
+         }
+         private static void GetOrbitValues(
+@@ -188,12 +161,12 @@ namespace VanillaUpgrades.World
+             out string apoapsis,
+             out string periapsis,
+             out string eccentricity,
+-            out string angleTitle,
+-            out string angle
++            out string angle,
++            out string localAngle
+         )
+         {
+             apoapsis = "0.0m";
+             periapsis = "0.0m";
+             eccentricity = "0.000";
+-            angleTitle = "Angle";
+             angle = "0.0°";
++            localAngle = "0.0°";
+@@ -220,24 +193,14 @@ namespace VanillaUpgrades.World
+             var facing = new Vector2(Mathf.Cos(globalAngle * Mathf.Deg2Rad), Mathf.Sin(globalAngle * Mathf.Deg2Rad));
+             var trueAngle = Vector2.SignedAngle(facing, orbitAngleVector);
+-            var planetSurface = loc.planet.TimewarpRadius_Ascend - loc.planet.Radius;
+-            if (loc.GetTerrainHeight(true) < planetSurface)
+-            {
+-                angle = trueAngle.ToString("F1", CultureInfo.InvariantCulture) + "°";
+-                angleTitle = "Local Angle";
+-            }
+-            else
+-            {
+-                angleTitle = "Angle";
+-                angle = globalAngle > 180
+-                    ? (360 - globalAngle).ToString("F1", CultureInfo.InvariantCulture) + "°"
+-                    : (-globalAngle).ToString("F1", CultureInfo.InvariantCulture) + "°";
+-            }
++            localAngle = trueAngle.ToString("F1", CultureInfo.InvariantCulture) + "°";
++            angle = globalAngle > 180
++                ? (360 - globalAngle).ToString("F1", CultureInfo.InvariantCulture) + "°"
++                : (-globalAngle).ToString("F1", CultureInfo.InvariantCulture) + "°";
+         }
+         // -- Holds references for each field's UI in vanilla inline, horizontal, and vertical
+         private class DisplayRefs
+         {
+             public Label horizontal; // readout label in horizontal layout
+             public TextAdapter vanilla; // e.g. right label in vanilla UI
+-            public TextAdapter vanillaTitle; // special case if needed for "Angle"
+             public Label vertical; // readout label in vertical layout
+         }
+*** End Patch
+
+diff --git a/src/World/AdvancedInfoUI.cs b/src/World/AdvancedInfoUI.cs
+--- a/src/World/AdvancedInfoUI.cs
++++ b/src/World/AdvancedInfoUI.cs
+@@ -93,7 +93,10 @@ namespace VanillaUpgrades.World
+-            Label angleTitleLabel = UIExtensions.AlignedLabel(parent, 140, 30, "Angle:");
++            UIExtensions.AlignedLabel(parent, 140, 30, "Angle:");
+             // Value label
+             Label angleValueLabel = UIExtensions.AlignedLabel(parent, 175, 30);
+ 
+             // Hook them up so the refactoring code can update each
+-            DisplayMap["AngleTitle"].vertical = angleTitleLabel;
+             DisplayMap["Angle"].vertical = angleValueLabel;
++            Builder.CreateSpace(parent, 1, 10);
++            UIExtensions.AlignedLabel(parent, 140, 30, "Local Angle:");
++            Label localAngleValueLabel = UIExtensions.AlignedLabel(parent, 175, 30);
++            DisplayMap["Local Angle"].vertical = localAngleValueLabel;
+@@ -125,7 +128,11 @@ namespace VanillaUpgrades.World
+             // Title label
+-            Label angleTitleLabel = UIExtensions.AlignedLabel(angleRow, 150, 30, "Angle:");
++            UIExtensions.AlignedLabel(angleRow, 150, 30, "Angle:");
+             // Value label
+             Label angleValueLabel = UIExtensions.AlignedLabel(angleRow, 175, 30);
+             // Hook them up so the refactoring code can update each
+-            DisplayMap["AngleTitle"].horizontal = angleTitleLabel;
+             DisplayMap["Angle"].horizontal = angleValueLabel;
++            Container localAngleRow = Builder.CreateContainer(parent);
++            localAngleRow.CreateLayoutGroup(Type.Horizontal, TextAnchor.UpperLeft, 5);
++            UIExtensions.AlignedLabel(localAngleRow, 150, 30, "Local Angle:");
++            Label localAngleValueLabel = UIExtensions.AlignedLabel(localAngleRow, 175, 30);
++            DisplayMap["Local Angle"].horizontal = localAngleValueLabel;
+@@ -145,1 +145,1 @@ namespace VanillaUpgrades.World
+-            string[] fieldOrder = { "Apoapsis", "Periapsis", "Eccentricity", "Angle" };
++            string[] fieldOrder = { "Apoapsis", "Periapsis", "Eccentricity", "Angle", "Local Angle" };
+@@ -169,11 +169,1 @@ namespace VanillaUpgrades.World
+-                if (key == "Angle")
+-                {
+-                    if (DisplayMap["AngleTitle"] != null)
+-                        DisplayMap["AngleTitle"].vanillaTitle = titleText; // for "Local Angle" etc.
+-                    if (DisplayMap["Angle"] != null)
+-                        DisplayMap["Angle"].vanilla = valueText;
+-                }
+-                else
+-                {
+-                    DisplayMap[key].vanilla = valueText;
+-                }
++                DisplayMap[key].vanilla = valueText;
+*** End Patch
