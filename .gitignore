@@ -362,7 +362,6 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 ASoD's VanillaUpgrades.csproj
-References
 
 .idea/
 VanillaUpgrades.csproj.DotSettings
